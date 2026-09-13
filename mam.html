@@ -1,0 +1,1197 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Mega Arcade All-In-One</title>
+    <style>
+        * { box-sizing: border-box; user-select: none; margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
+        body, html { width: 100%; height: 100%; overflow: hidden; background: #0f0f1d; color: #fff; }
+
+        /* Top Bar Controls */
+        #top-bar { position: absolute; top: 0; left: 0; width: 100%; height: 50px; background: rgba(0,0,0,0.7); backdrop-filter: blur(5px); z-index: 1000; display: flex; align-items: center; justify-content: space-between; padding: 0 15px; border-bottom: 2px solid #ff0055; }
+        .audio-controls { display: flex; align-items: center; gap: 8px; }
+        .btn { background: #ff0055; color: white; border: none; padding: 6px 12px; border-radius: 6px; font-weight: bold; cursor: pointer; transition: 0.2s; font-size: 12px; }
+        .btn:hover { background: #ff3377; transform: scale(1.05); }
+        .btn:active { transform: scale(0.95); }
+
+        /* Screens */
+        .screen { position: absolute; top: 0; left: 0; width: 100%; height: 100%; display: none; flex-direction: column; align-items: center; justify-content: center; }
+        .active { display: flex !important; }
+
+        /* Loading Screen */
+        #loading-screen { background: #09090e; z-index: 2000; }
+        .loading-title { font-size: 32px; font-weight: 900; color: #00e5ff; text-shadow: 0 0 15px #00e5ff; margin-bottom: 20px; text-align: center; }
+        .tiktok-credits { font-size: 16px; color: #ff0055; margin-bottom: 30px; text-align: center; line-height: 1.6; }
+        .loading-bar-container { width: 80%; max-width: 400px; height: 24px; background: #1a1a2e; border: 2px solid #00e5ff; border-radius: 12px; padding: 2px; overflow: hidden; box-shadow: 0 0 15px rgba(0,229,255,0.4); }
+        .loading-bar { width: 0%; height: 100%; background: linear-gradient(90deg, #ff0055, #00e5ff); border-radius: 8px; transition: width 0.05s linear; }
+        .loading-text { margin-top: 15px; font-size: 18px; color: #fff; font-weight: bold; }
+
+        /* Main Menu */
+        #main-menu { background-size: cover; background-position: center; background-repeat: no-repeat; justify-content: flex-start; padding-top: 60px; overflow-y: auto; }
+        .menu-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 15px; width: 90%; max-width: 850px; margin-bottom: 80px; margin-top: 15px; }
+        .menu-card { background: rgba(20, 20, 35, 0.85); border: 2px solid #3d3d6b; border-radius: 12px; padding: 12px; text-align: center; cursor: pointer; transition: 0.3s; backdrop-filter: blur(4px); box-shadow: 0 4px 15px rgba(0,0,0,0.5); }
+        .menu-card:hover { border-color: #00e5ff; transform: translateY(-5px); background: rgba(30, 30, 55, 0.95); box-shadow: 0 8px 25px rgba(0,229,255,0.4); }
+        .menu-card h3 { font-size: 14px; margin-top: 6px; color: #fff; }
+        .menu-card .icon { font-size: 32px; }
+
+        /* Global Back Button */
+        #global-back-btn { position: absolute; bottom: 15px; left: 15px; z-index: 1001; background: #e60000; display: none; font-size: 14px; padding: 10px 18px; box-shadow: 0 4px 10px rgba(0,0,0,0.5); }
+
+        /* Overlay */
+        .overlay { position: absolute; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 1500; display: none; flex-direction: column; align-items: center; justify-content: center; backdrop-filter: blur(5px); }
+        .overlay-content { background: #181828; border: 2px solid #00e5ff; padding: 25px; border-radius: 15px; text-align: center; max-width: 90%; width: 400px; box-shadow: 0 0 20px rgba(0,229,255,0.3); }
+        .overlay-buttons { display: flex; justify-content: center; gap: 15px; margin-top: 20px; }
+
+        /* Submenus */
+        .submenu-container { display: flex; flex-direction: column; gap: 12px; width: 85%; max-width: 320px; }
+
+        /* Canvas Elements */
+        canvas { background: #000; border-radius: 8px; box-shadow: 0 0 20px rgba(0,0,0,0.8); max-width: 95vw; max-height: 70vh; }
+
+        /* Toolbars & Quiz */
+        .toolbar { display: flex; gap: 8px; margin-bottom: 10px; flex-wrap: wrap; justify-content: center; align-items: center; }
+        input[type="color"] { border: none; width: 35px; height: 35px; border-radius: 50%; cursor: pointer; }
+        .quiz-box { width: 90%; max-width: 500px; background: #1c1c30; padding: 20px; border-radius: 12px; border: 2px solid #00e5ff; text-align: center; }
+        .quiz-options { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .flag-img { width: 160px; height: 100px; margin: 10px auto; border: 2px solid #fff; border-radius: 6px; overflow: hidden; }
+
+        /* On-Screen Touch D-Pads */
+        .stick-hud { position: absolute; top: 60px; left: 20px; font-size: 16px; font-weight: bold; color: #ff0055; text-shadow: 0 0 5px #000; z-index: 10; display: flex; gap: 15px; }
+        .touch-pad { position: absolute; bottom: 20px; right: 20px; display: grid; grid-template-columns: repeat(3, 50px); gap: 5px; z-index: 10; }
+        .touch-btn { width: 50px; height: 50px; background: rgba(255,255,255,0.25); border: 2px solid #fff; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 20px; color: #fff; font-weight: bold; }
+        .touch-btn:active { background: rgba(255,255,255,0.6); }
+
+        .speech-bubble { position: absolute; background: white; color: black; padding: 6px 12px; border-radius: 10px; font-size: 14px; font-weight: bold; pointer-events: none; transform: translate(-50%, -100%); transition: opacity 0.3s; z-index: 20; border: 2px solid #000; }
+    </style>
+</head>
+<body>
+
+    <!-- Top Music & Config Bar -->
+    <div id="top-bar">
+        <div style="font-weight: 900; letter-spacing: 1px; color: #00e5ff;">MEGA ARCADE</div>
+        <div class="audio-controls">
+            <button class="btn" onclick="toggleBGM()">🎵 BGM</button>
+            <button class="btn" onclick="document.getElementById('custom-bgm-input').click()">📁 Lagu Custom</button>
+            <input type="file" id="custom-bgm-input" accept="audio/*" style="display:none;" onchange="loadCustomBGM(event)">
+            <button class="btn" style="background:#00c853;" onclick="openSkinMenu()">🎨 Skin</button>
+        </div>
+    </div>
+
+    <!-- Global Back Button -->
+    <button id="global-back-btn" class="btn" onclick="backToMainMenu()">⬅ Menu Awal</button>
+
+    <!-- LOADING SCREEN (FIXED 5 DETIK EXACT) -->
+    <div id="loading-screen" class="screen active">
+        <div class="loading-title">MEGA ARCADE SYSTEM</div>
+        <div class="tiktok-credits">
+            <b>CREATED BY:</b><br>
+            🎵 TikTok: @URWAH_90<br>
+            🔥 TikTok: @CENZIA_10<br>
+            ⚔️ TikTok: @FATUR_OFFCIAL
+        </div>
+        <div class="loading-bar-container">
+            <div id="loading-bar" class="loading-bar"></div>
+        </div>
+        <div id="loading-text" class="loading-text">Memuat Game... 0%</div>
+    </div>
+
+    <!-- MAIN MENU SCREEN -->
+    <div id="main-menu" class="screen">
+        <h1 style="margin-top:10px; color:#fff; text-shadow: 0 0 10px #ff0055;">MEGA ARCADE ALL-IN-ONE</h1>
+        <div class="menu-grid">
+            <div class="menu-card" onclick="openSubmenu('xo-menu')">
+                <div class="icon">❌⭕</div>
+                <h3>Play XO</h3>
+            </div>
+            <div class="menu-card" onclick="openSubmenu('draw-menu')">
+                <div class="icon">🎨</div>
+                <h3>Play Menggambar</h3>
+            </div>
+            <div class="menu-card" onclick="openSubmenu('block-menu')">
+                <div class="icon">🧩</div>
+                <h3>Play Block Blast</h3>
+            </div>
+            <div class="menu-card" onclick="openSubmenu('stick-menu')">
+                <div class="icon">⚔️</div>
+                <h3>Play Stickman</h3>
+            </div>
+            <div class="menu-card" onclick="openSubmenu('car-menu')">
+                <div class="icon">🏎️</div>
+                <h3>Play Mobil</h3>
+            </div>
+            <div class="menu-card" onclick="openSubmenu('word-menu')">
+                <div class="icon">🔤</div>
+                <h3>Play Sambung Kata</h3>
+            </div>
+            <div class="menu-card" onclick="openSubmenu('edu-menu')">
+                <div class="icon">📚</div>
+                <h3>Play Pelajaran</h3>
+            </div>
+            <div class="menu-card" onclick="startSnakeGame()">
+                <div class="icon">🐍</div>
+                <h3>Play Snake</h3>
+            </div>
+            <div class="menu-card" onclick="startFlappyGame()">
+                <div class="icon">🐦</div>
+                <h3>Flappy Bird Real</h3>
+            </div>
+            <div class="menu-card" onclick="startSpaceGame()">
+                <div class="icon">🚀</div>
+                <h3>Space Defender</h3>
+            </div>
+        </div>
+        <div style="position: absolute; bottom: 15px; right: 15px;">
+            <button class="btn" style="background:#555;" onclick="document.getElementById('bg-input').click()">🖼️ Ganti Background Menu</button>
+            <input type="file" id="bg-input" accept="image/*" style="display:none;" onchange="changeMenuBackground(event)">
+        </div>
+    </div>
+
+    <!-- SUBMENUS -->
+    <div id="xo-menu" class="screen">
+        <h2>PILIH MODE XO</h2><br>
+        <div class="submenu-container">
+            <button class="btn" style="padding:15px;" onclick="initXO(2)">Play 2 Players (1 HP)</button>
+            <button class="btn" style="padding:15px;" onclick="initXO(3)">Play 3 Players (Grid 4x4)</button>
+            <button class="btn" style="padding:15px; background:#00e5ff; color:#000;" onclick="initXO('ai')">Play dengan Robot</button>
+        </div>
+    </div>
+
+    <div id="draw-menu" class="screen">
+        <h2>MODES MENGGAMBAR</h2><br>
+        <div class="submenu-container">
+            <button class="btn" style="padding:15px;" onclick="initDrawingMode('free')">🎨 Bebas Menggambar</button>
+            <button class="btn" style="padding:15px; background:#ff9900;" onclick="initDrawingMode('contest')">🏆 Lomba Menggambar (5 Menit)</button>
+        </div>
+    </div>
+
+    <div id="block-menu" class="screen">
+        <h2>LATAR BLOCK BLAST</h2><br>
+        <div class="submenu-container">
+            <button class="btn" style="background:#222;" onclick="startBlockBlast('#111')">⚫ Hitam</button>
+            <button class="btn" style="background:#0055ff;" onclick="startBlockBlast('#0033aa')">🔵 Biru</button>
+            <button class="btn" style="background:#cc0000;" onclick="startBlockBlast('#880000')">🔴 Merah</button>
+            <button class="btn" style="background:#00aa00;" onclick="startBlockBlast('#006600')">🟢 Hijau</button>
+            <button class="btn" style="background:#e6b800; color:#000;" onclick="startBlockBlast('#997a00')">🟡 Kuning</button>
+            <button class="btn" style="background:#eee; color:#000;" onclick="startBlockBlast('#ffffff')">⚪ Putih</button>
+        </div>
+    </div>
+
+    <div id="stick-menu" class="screen">
+        <h2>MODE STICKMAN</h2><br>
+        <div class="submenu-container">
+            <button class="btn" style="padding:15px; background:#ff0055;" onclick="openSubmenu('stick-weapon-menu')">⚔️ Mode Perang</button>
+            <button class="btn" style="padding:15px; background:#00e5ff; color:#000;" onclick="initStickman('adventure')">🏙️ Mode Petualang</button>
+        </div>
+    </div>
+
+    <div id="stick-weapon-menu" class="screen">
+        <h2>PILIH SENJATA STICKMAN</h2><br>
+        <div class="submenu-container">
+            <button class="btn" style="padding:12px;" onclick="initStickman('war', 'Pistol')">🔫 Pistol</button>
+            <button class="btn" style="padding:12px;" onclick="initStickman('war', 'AK47')">💥 AK47</button>
+            <button class="btn" style="padding:12px;" onclick="initStickman('war', 'Katana')">🗡️ Pedang Samurai</button>
+            <button class="btn" style="padding:12px;" onclick="initStickman('war', 'Pisau')">🔪 Pisau</button>
+        </div>
+    </div>
+
+    <div id="car-menu" class="screen">
+        <h2>GAME MOBIL RACING</h2><br>
+        <div class="submenu-container">
+            <label style="font-weight:bold;">Pilih Level (1 - 1000):</label>
+            <input type="number" id="car-level-input" min="1" max="1000" value="1" style="padding:8px; border-radius:6px; border:none; text-align:center; font-weight:bold; font-size:16px;">
+            
+            <label style="font-weight:bold; margin-top:10px;">Pilih Warna Mobil Realistis:</label>
+            <select id="car-color-select" style="padding:8px; border-radius:6px; font-weight:bold;">
+                <option value="#ff0000">🔴 Merah Supercar</option>
+                <option value="#0055ff">🔵 Biru Sport</option>
+                <option value="#00cc44">🟢 Hijau Neon</option>
+                <option value="#ffcc00">🟡 Kuning Balap</option>
+                <option value="#ffd700">🏆 Emas Mewah</option>
+                <option value="#222222">⚫ Hitam Stealth</option>
+            </select>
+            
+            <button class="btn" style="padding:15px; margin-top:15px; background:#00c853;" onclick="startCarGame()">🚗 MULAI BALAPAN</button>
+        </div>
+    </div>
+
+    <div id="word-menu" class="screen">
+        <h2>SAMBUNG KATA & TEBAK BENDERA</h2><br>
+        <div class="submenu-container">
+            <button class="btn" onclick="startWordGame('buah')">🍎 Buah</button>
+            <button class="btn" onclick="startWordGame('hewan')">🦁 Hewan</button>
+            <button class="btn" onclick="startWordGame('nama')">👤 Nama Orang</button>
+            <button class="btn" onclick="startWordGame('kota')">🏙️ Kota</button>
+            <button class="btn" style="background:#00e5ff; color:#000;" onclick="startWordGame('negara')">🚩 Negara (Tebak Bendera)</button>
+            <button class="btn" onclick="startWordGame('benda')">📦 Benda</button>
+        </div>
+    </div>
+
+    <div id="edu-menu" class="screen">
+        <h2>PILIH KELAS SEKOLAH</h2><br>
+        <div class="submenu-container" style="display:grid; grid-template-columns: 1fr 1fr; gap:10px;">
+            <button class="btn" onclick="openEduSubject(1)">Kelas 1</button>
+            <button class="btn" onclick="openEduSubject(2)">Kelas 2</button>
+            <button class="btn" onclick="openEduSubject(3)">Kelas 3</button>
+            <button class="btn" onclick="openEduSubject(4)">Kelas 4</button>
+            <button class="btn" onclick="openEduSubject(5)">Kelas 5</button>
+            <button class="btn" onclick="openEduSubject(6)">Kelas 6</button>
+        </div>
+    </div>
+
+    <div id="edu-subject-menu" class="screen">
+        <h2 id="edu-class-title">KELAS X</h2><br>
+        <div class="submenu-container">
+            <button class="btn" style="padding:15px;" onclick="startEduGame('math')">📐 Matematika</button>
+            <button class="btn" style="padding:15px; background:#00c853;" onclick="startEduGame('tauhid')">Book Attuqa: 🕌 Pelajaran Tauhid</button>
+        </div>
+    </div>
+
+    <div id="skin-menu" class="screen">
+        <h2>PILIH SKIN KARAKTER GLOBAL</h2><br>
+        <div class="submenu-container">
+            <button class="btn" style="background:#00e5ff; color:#000;" onclick="selectSkin('#00e5ff')">Cyan Neon (Default)</button>
+            <button class="btn" style="background:#ff0055;" onclick="selectSkin('#ff0055')">Crimson Red</button>
+            <button class="btn" style="background:#00c853;" onclick="selectSkin('#00c853')">Emerald Green</button>
+            <button class="btn" style="background:#ffd700; color:#000;" onclick="selectSkin('#ffd700')">Golden Hero</button>
+            <button class="btn" style="background:#9c27b0;" onclick="selectSkin('#9c27b0')">Shadow Purple</button>
+        </div>
+    </div>
+
+    <!-- GAME CANVASES & INTERFACES -->
+    <div id="xo-screen" class="screen">
+        <h2 id="xo-status" style="margin-bottom: 15px;">Giliran Player X</h2>
+        <div id="xo-board" style="display:grid; gap:10px; background:#222; padding:15px; border-radius:12px; border:2px solid #00e5ff;"></div>
+    </div>
+
+    <div id="draw-screen" class="screen">
+        <div class="toolbar">
+            <input type="color" id="draw-color" value="#00e5ff">
+            <button class="btn" onclick="enableColorPicker()">🧪 Salin Warna</button>
+            <input type="range" id="draw-size" min="2" max="30" value="6">
+            <button class="btn" style="background:#555;" onclick="clearCanvas()">🗑️ Bersihkan</button>
+            <div id="draw-timer" style="font-weight:bold; color:#ff0055; margin-left:10px;"></div>
+        </div>
+        <div id="draw-topic" style="font-size:18px; font-weight:bold; margin-bottom:5px; color:#00e5ff;"></div>
+        <div id="canvases-wrapper" style="display:flex; gap:10px;">
+            <canvas id="paintCanvas1" width="300" height="380"></canvas>
+            <canvas id="paintCanvas2" width="300" height="380" style="display:none;"></canvas>
+            <canvas id="paintCanvas3" width="300" height="380" style="display:none;"></canvas>
+        </div>
+    </div>
+
+    <div id="block-screen" class="screen">
+        <div style="font-size:20px; font-weight:bold; margin-bottom:10px;">SCORE: <span id="block-score">0</span></div>
+        <canvas id="blockCanvas" width="360" height="480"></canvas>
+    </div>
+
+    <div id="stick-screen" class="screen">
+        <div class="stick-hud">
+            <div id="stick-hp">Nyawa: ❤❤❤</div>
+            <div id="stick-mission">Misi: -</div>
+        </div>
+        <canvas id="stickCanvas" width="800" height="450"></canvas>
+        <div class="touch-pad">
+            <div></div>
+            <div class="touch-btn" id="btn-up">▲</div>
+            <div></div>
+            <div class="touch-btn" id="btn-left">◀</div>
+            <div class="touch-btn" id="btn-action">🔥</div>
+            <div class="touch-btn" id="btn-right">▶</div>
+        </div>
+        <div id="speech-box" class="speech-bubble" style="opacity:0;"></div>
+    </div>
+
+    <div id="car-screen" class="screen">
+        <div style="font-size:18px; font-weight:bold; margin-bottom:5px;">LEVEL: <span id="car-lvl-num">1</span>/1000 | SKOR: <span id="car-score">0</span></div>
+        <canvas id="carCanvas" width="360" height="480"></canvas>
+        <div class="touch-pad">
+            <div></div>
+            <div class="touch-btn" id="car-btn-up">▲</div>
+            <div></div>
+            <div class="touch-btn" id="car-btn-left">◀</div>
+            <div class="touch-btn" id="car-btn-down">▼</div>
+            <div class="touch-btn" id="car-btn-right">▶</div>
+        </div>
+    </div>
+
+    <div id="quiz-screen" class="screen">
+        <div class="quiz-box">
+            <div id="quiz-timer" style="font-size:22px; font-weight:bold; color:#ff0055; margin-bottom:10px;">50s</div>
+            <div id="quiz-question" style="font-size:18px; font-weight:bold;">Soal Pertanyaan</div>
+            <div id="quiz-media"></div>
+            <div id="quiz-options" class="quiz-options"></div>
+        </div>
+    </div>
+
+    <div id="snake-screen" class="screen">
+        <div style="display:flex; gap:15px; font-size:15px; font-weight:bold; margin-bottom:10px;">
+            <div>LVL: <span id="snake-lvl">1</span>/1000</div>
+            <div>NYAWA: <span id="snake-hp">❤❤❤❤❤</span></div>
+            <div>SKOR: <span id="snake-score">0</span></div>
+        </div>
+        <canvas id="snakeCanvas" width="360" height="360"></canvas>
+        <div class="touch-pad" style="bottom:10px;">
+            <div></div>
+            <div class="touch-btn" id="snk-btn-up">▲</div>
+            <div></div>
+            <div class="touch-btn" id="snk-btn-left">◀</div>
+            <div></div>
+            <div class="touch-btn" id="snk-btn-right">▶</div>
+            <div></div>
+            <div class="touch-btn" id="snk-btn-down">▼</div>
+            <div></div>
+        </div>
+    </div>
+
+    <div id="flappy-screen" class="screen">
+        <div style="font-size:20px; font-weight:bold; margin-bottom:10px;">SKOR: <span id="flappy-score">0</span></div>
+        <canvas id="flappyCanvas" width="360" height="480"></canvas>
+    </div>
+
+    <div id="space-screen" class="screen">
+        <div style="font-size:20px; font-weight:bold; margin-bottom:10px;">SKOR: <span id="space-score">0</span></div>
+        <canvas id="spaceCanvas" width="360" height="480"></canvas>
+        <div class="touch-pad" style="bottom:15px;">
+            <div class="touch-btn" id="spc-btn-left">◀</div>
+            <div class="touch-btn" id="spc-btn-fire">🔥</div>
+            <div class="touch-btn" id="spc-btn-right">▶</div>
+        </div>
+    </div>
+
+    <!-- GLOBAL OVERLAY GAME OVER / VICTORY -->
+    <div id="global-overlay" class="overlay">
+        <div class="overlay-content">
+            <h1 id="overlay-title" style="color:#ff0055; margin-bottom:10px;">GAME OVER</h1>
+            <p id="overlay-msg" style="margin-bottom:20px;">Kamu Kalah!</p>
+            <div class="overlay-buttons">
+                <button class="btn" style="background:#00c853; padding:10px 20px;" onclick="retryCurrentGame()">🔄 Ulangi Game</button>
+                <button class="btn" style="background:#e60000; padding:10px 20px;" onclick="backToMainMenu()">🏠 Ke Menu Awal</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /* ==================== AUDIO SYNTHESIZER ENGINE ==================== */
+        const AudioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        let isBgmPlaying = false;
+        let customBGM = null;
+        let activeSkinColor = '#00e5ff';
+
+        function playSFX(type) {
+            if (AudioCtx.state === 'suspended') AudioCtx.resume();
+            const osc = AudioCtx.createOscillator();
+            const gain = AudioCtx.createGain();
+            osc.connect(gain); gain.connect(AudioCtx.destination);
+            const now = AudioCtx.currentTime;
+
+            if (type === 'click') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(600, now);
+                gain.gain.setValueAtTime(0.1, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.05);
+                osc.start(now); osc.stop(now + 0.05);
+            } else if (type === 'jump') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(150, now);
+                osc.frequency.exponentialRampToValueAtTime(600, now + 0.15);
+                gain.gain.setValueAtTime(0.15, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.15);
+                osc.start(now); osc.stop(now + 0.15);
+            } else if (type === 'hit') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(120, now);
+                osc.frequency.linearRampToValueAtTime(40, now + 0.2);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.2);
+                osc.start(now); osc.stop(now + 0.2);
+            } else if (type === 'eat') {
+                osc.type = 'sine'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.exponentialRampToValueAtTime(800, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'shoot') {
+                osc.type = 'square'; osc.frequency.setValueAtTime(800, now);
+                osc.frequency.exponentialRampToValueAtTime(100, now + 0.1);
+                gain.gain.setValueAtTime(0.2, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.1);
+                osc.start(now); osc.stop(now + 0.1);
+            } else if (type === 'win') {
+                [261, 329, 392, 523].forEach((freq, idx) => {
+                    const o = AudioCtx.createOscillator(); const g = AudioCtx.createGain();
+                    o.connect(g); g.connect(AudioCtx.destination);
+                    o.frequency.value = freq;
+                    g.gain.setValueAtTime(0.1, now + idx*0.1); g.gain.exponentialRampToValueAtTime(0.01, now + idx*0.1 + 0.2);
+                    o.start(now + idx*0.1); o.stop(now + idx*0.1 + 0.2);
+                });
+            } else if (type === 'lose') {
+                osc.type = 'sawtooth'; osc.frequency.setValueAtTime(300, now);
+                osc.frequency.linearRampToValueAtTime(80, now + 0.5);
+                gain.gain.setValueAtTime(0.3, now); gain.gain.exponentialRampToValueAtTime(0.01, now + 0.5);
+                osc.start(now); osc.stop(now + 0.5);
+            }
+        }
+
+        function toggleBGM() {
+            if (customBGM) {
+                if (customBGM.paused) customBGM.play(); else customBGM.pause();
+                return;
+            }
+            isBgmPlaying = !isBgmPlaying;
+            if (isBgmPlaying) startSynthBGM();
+        }
+
+        function startSynthBGM() {
+            if (!isBgmPlaying || customBGM) return;
+            const notes = [220, 261, 293, 329, 392, 440];
+            let step = 0;
+            setInterval(() => {
+                if (!isBgmPlaying || customBGM) return;
+                const osc = AudioCtx.createOscillator(); const gain = AudioCtx.createGain();
+                osc.connect(gain); gain.connect(AudioCtx.destination);
+                osc.type = 'triangle'; osc.frequency.value = notes[step % notes.length];
+                gain.gain.setValueAtTime(0.03, AudioCtx.currentTime);
+                gain.gain.exponentialRampToValueAtTime(0.001, AudioCtx.currentTime + 0.25);
+                osc.start(); osc.stop(AudioCtx.currentTime + 0.25);
+                step++;
+            }, 300);
+        }
+
+        function loadCustomBGM(e) {
+            const file = e.target.files[0];
+            if (file) {
+                if (customBGM) customBGM.pause();
+                customBGM = new Audio(URL.createObjectURL(file));
+                customBGM.loop = true; customBGM.play();
+                isBgmPlaying = true;
+            }
+        }
+
+        /* ==================== LOADING SCREEN (FIXED EXACT 5 DETIK) ==================== */
+        window.addEventListener('DOMContentLoaded', () => {
+            let progress = 0;
+            const bar = document.getElementById('loading-bar');
+            const text = document.getElementById('loading-text');
+            
+            // Interval 50ms * 100 langkah = Tepat 5000ms (5 Detik)
+            const timer = setInterval(() => {
+                progress += 1;
+                bar.style.width = progress + '%';
+                text.innerText = `Memuat Game... ${progress}%`;
+
+                if (progress >= 100) {
+                    clearInterval(timer);
+                    setTimeout(() => {
+                        document.getElementById('loading-screen').classList.remove('active');
+                        document.getElementById('main-menu').classList.add('active');
+                    }, 200);
+                }
+            }, 50);
+        });
+
+        let currentActiveScreen = 'main-menu';
+        let currentGameRetryFn = null;
+
+        function showScreen(id) {
+            playSFX('click');
+            document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+            document.getElementById(id).classList.add('active');
+            currentActiveScreen = id;
+
+            const backBtn = document.getElementById('global-back-btn');
+            if (id === 'main-menu' || id === 'loading-screen') {
+                backBtn.style.display = 'none';
+            } else {
+                backBtn.style.display = 'block';
+            }
+            closeOverlay();
+            stopAllLoops();
+        }
+
+        function openSubmenu(id) { showScreen(id); }
+        function backToMainMenu() { showScreen('main-menu'); }
+
+        function changeMenuBackground(e) {
+            const file = e.target.files[0];
+            if (file) {
+                const url = URL.createObjectURL(file);
+                document.getElementById('main-menu').style.backgroundImage = `url('${url}')`;
+            }
+        }
+
+        function openSkinMenu() { showScreen('skin-menu'); }
+        function selectSkin(color) {
+            activeSkinColor = color;
+            alert('Skin Karakter Berhasil Diganti!');
+            backToMainMenu();
+        }
+
+        function triggerGameOver(msg) {
+            playSFX('lose');
+            document.getElementById('overlay-title').innerText = "GAME OVER";
+            document.getElementById('overlay-title').style.color = "#ff0055";
+            document.getElementById('overlay-msg').innerText = msg;
+            document.getElementById('global-overlay').style.display = 'flex';
+        }
+
+        function triggerVictory(msg) {
+            playSFX('win');
+            document.getElementById('overlay-title').innerText = "VICTORY! 🎉";
+            document.getElementById('overlay-title').style.color = "#00c853";
+            document.getElementById('overlay-msg').innerText = msg;
+            document.getElementById('global-overlay').style.display = 'flex';
+        }
+
+        function closeOverlay() { document.getElementById('global-overlay').style.display = 'none'; }
+        function retryCurrentGame() {
+            closeOverlay();
+            if (currentGameRetryFn) currentGameRetryFn();
+        }
+
+        let activeIntervals = [];
+        let activeAnimFrames = [];
+        function stopAllLoops() {
+            activeIntervals.forEach(clearInterval); activeIntervals = [];
+            activeAnimFrames.forEach(cancelAnimationFrame); activeAnimFrames = [];
+        }
+
+        /* ==================== 1. GAME MOBIL (REALISTIS & LEVEL 1000) ==================== */
+        function startCarGame() {
+            showScreen('car-screen');
+            currentGameRetryFn = () => startCarGame();
+            const lvl = parseInt(document.getElementById('car-level-input').value) || 1;
+            const carColor = document.getElementById('car-color-select').value;
+            
+            document.getElementById('car-lvl-num').innerText = lvl;
+            const canvas = document.getElementById('carCanvas');
+            const ctx = canvas.getContext('2d');
+
+            let car = { x: 160, y: 380, w: 40, h: 70, speed: 4 };
+            let obstacles = [];
+            let score = 0;
+            let keys = {};
+
+            window.onkeydown = (e) => keys[e.key] = true;
+            window.onkeyup = (e) => keys[e.key] = false;
+
+            const setupTouch = (id, key) => {
+                const el = document.getElementById(id);
+                el.onmousedown = el.ontouchstart = (e) => { e.preventDefault(); keys[key] = true; };
+                el.onmouseup = el.ontouchend = (e) => { e.preventDefault(); keys[key] = false; };
+            };
+            setupTouch('car-btn-up', 'ArrowUp'); setupTouch('car-btn-down', 'ArrowDown');
+            setupTouch('car-btn-left', 'ArrowLeft'); setupTouch('car-btn-right', 'ArrowRight');
+
+            let loop = setInterval(() => {
+                if ((keys['ArrowLeft'] || keys['a']) && car.x > 40) car.x -= car.speed;
+                if ((keys['ArrowRight'] || keys['d']) && car.x < 320 - car.w) car.x += car.speed;
+                if ((keys['ArrowUp'] || keys['w']) && car.y > 50) car.y -= car.speed;
+                if ((keys['ArrowDown'] || keys['s']) && car.y < 400) car.y += car.speed;
+
+                let spawnRate = Math.max(0.02, 0.03 + (lvl * 0.001));
+                if (Math.random() < spawnRate) {
+                    obstacles.push({ x: 50 + Math.random() * 220, y: -80, w: 40, h: 70, color: '#ff0055', speed: 3 + Math.min(10, lvl * 0.1) });
+                }
+
+                ctx.fillStyle = '#333'; ctx.fillRect(0, 0, canvas.width, canvas.height);
+                ctx.fillStyle = '#222'; ctx.fillRect(40, 0, 280, canvas.height);
+                
+                ctx.strokeStyle = '#fff'; ctx.lineWidth = 4; ctx.setLineDash([20, 20]);
+                ctx.beginPath(); ctx.moveTo(180, 0); ctx.lineTo(180, canvas.height); ctx.stroke(); ctx.setLineDash([]);
+
+                drawDetailedCar(ctx, car.x, car.y, car.w, car.h, carColor);
+
+                obstacles.forEach((obs, idx) => {
+                    obs.y += obs.speed;
+                    drawDetailedCar(ctx, obs.x, obs.y, obs.w, obs.h, obs.color);
+
+                    if (car.x < obs.x + obs.w && car.x + car.w > obs.x && car.y < obs.y + obs.h && car.y + car.h > obs.y) {
+                        clearInterval(loop);
+                        triggerGameOver(`Tabrakan di Level ${lvl}!`);
+                    }
+
+                    if (obs.y > canvas.height) {
+                        obstacles.splice(idx, 1);
+                        score += 10;
+                        document.getElementById('car-score').innerText = score;
+                        if (score >= 200) {
+                            clearInterval(loop);
+                            triggerVictory(`Level ${lvl} Selesai! Kamu Menang!`);
+                        }
+                    }
+                });
+
+            }, 20);
+            activeIntervals.push(loop);
+        }
+
+        function drawDetailedCar(ctx, x, y, w, h, color) {
+            ctx.save();
+            ctx.fillStyle = '#000';
+            ctx.fillRect(x - 3, y + 8, 6, 14); ctx.fillRect(x + w - 3, y + 8, 6, 14);
+            ctx.fillRect(x - 3, y + h - 22, 6, 14); ctx.fillRect(x + w - 3, y + h - 22, 6, 14);
+
+            ctx.fillStyle = color;
+            ctx.beginPath(); ctx.roundRect(x, y, w, h, 10); ctx.fill();
+
+            ctx.fillStyle = '#87ceeb';
+            ctx.fillRect(x + 5, y + 18, w - 10, 12);
+            ctx.fillRect(x + 6, y + h - 20, w - 12, 8);
+
+            ctx.fillStyle = 'rgba(0,0,0,0.2)';
+            ctx.fillRect(x + 5, y + 30, w - 10, h - 52);
+
+            ctx.fillStyle = '#ffff00';
+            ctx.fillRect(x + 4, y + 2, 8, 4); ctx.fillRect(x + w - 12, y + 2, 8, 4);
+
+            ctx.fillStyle = '#ff0000';
+            ctx.fillRect(x + 4, y + h - 4, 8, 3); ctx.fillRect(x + w - 12, y + h - 4, 8, 3);
+            ctx.restore();
+        }
+
+        /* ==================== 2. SPACE DEFENDER ==================== */
+        function startSpaceGame() {
+            showScreen('space-screen');
+            currentGameRetryFn = () => startSpaceGame();
+            const canvas = document.getElementById('spaceCanvas');
+            const ctx = canvas.getContext('2d');
+
+            let shipX = 160;
+            let bullets = [];
+            let enemies = [];
+            let score = 0;
+            let moveLeft = false, moveRight = false;
+
+            const bindBtn = (id, startAction, endAction) => {
+                const el = document.getElementById(id);
+                el.onmousedown = el.ontouchstart = (e) => { e.preventDefault(); startAction(); };
+                el.onmouseup = el.ontouchend = (e) => { e.preventDefault(); endAction(); };
+            };
+
+            bindBtn('spc-btn-left', () => moveLeft = true, () => moveLeft = false);
+            bindBtn('spc-btn-right', () => moveRight = true, () => moveRight = false);
+            document.getElementById('spc-btn-fire').onclick = () => {
+                bullets.push({ x: shipX, y: 420 }); playSFX('shoot');
+            };
+
+            let loop = setInterval(() => {
+                if (moveLeft && shipX > 20) shipX -= 5;
+                if (moveRight && shipX < 340) shipX += 5;
+
+                ctx.fillStyle = '#050510'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+                ctx.fillStyle = activeSkinColor;
+                ctx.beginPath();
+                ctx.moveTo(shipX, 410); ctx.lineTo(shipX-18, 440); ctx.lineTo(shipX+18, 440); ctx.fill();
+
+                bullets.forEach((b, bi) => {
+                    b.y -= 8;
+                    ctx.fillStyle = '#ff0055'; ctx.fillRect(b.x-2, b.y, 4, 10);
+                });
+
+                if (Math.random() < 0.04) enemies.push({ x: 20 + Math.random()*320, y: 0 });
+
+                enemies.forEach((en, ei) => {
+                    en.y += 3;
+                    ctx.fillStyle = '#ffd700'; ctx.fillRect(en.x-12, en.y-12, 24, 24);
+
+                    bullets.forEach((b, bi) => {
+                        if (Math.abs(b.x - en.x) < 18 && Math.abs(b.y - en.y) < 18) {
+                            playSFX('hit'); enemies.splice(ei, 1); bullets.splice(bi, 1);
+                            score += 20; document.getElementById('space-score').innerText = score;
+                        }
+                    });
+
+                    if (en.y > 450) { clearInterval(loop); triggerGameOver("Musuh Berhasil Menembus!"); }
+                });
+
+            }, 20);
+            activeIntervals.push(loop);
+        }
+
+        /* ==================== 3. STICKMAN ==================== */
+        function initStickman(mode, weapon = 'Pistol') {
+            showScreen('stick-screen');
+            currentGameRetryFn = () => initStickman(mode, weapon);
+
+            const canvas = document.getElementById('stickCanvas');
+            const ctx = canvas.getContext('2d');
+            const hudHP = document.getElementById('stick-hp');
+            const hudMission = document.getElementById('stick-mission');
+
+            let stickHP = 3;
+            let player = { x: 200, y: 320, vx: 0, vy: 0, frame: 0, isJumping: false };
+            let bullets = [];
+            let enemies = [{ x: 600, y: 320, hp: 2, vx: -1 }];
+            let hostages = [{ x: 800, y: 320, saved: false }];
+            let npcs = [{ x: 300, y: 300, name: "Warga 1" }];
+            let keys = {};
+
+            hudHP.innerText = "Nyawa: ❤❤❤";
+            hudMission.innerText = mode === 'war' ? `Misi: Perang (${weapon})` : "Misi: Petualangan Bebas";
+
+            window.onkeydown = (e) => keys[e.key] = true;
+            window.onkeyup = (e) => keys[e.key] = false;
+
+            const setupPad = (id, k) => {
+                const el = document.getElementById(id);
+                el.onmousedown = el.ontouchstart = (e) => { e.preventDefault(); keys[k] = true; };
+                el.onmouseup = el.ontouchend = (e) => { e.preventDefault(); keys[k] = false; };
+            };
+            setupPad('btn-left', 'ArrowLeft'); setupPad('btn-right', 'ArrowRight');
+            document.getElementById('btn-up').onclick = () => { if(!player.isJumping) { player.vy = -12; player.isJumping = true; playSFX('jump'); } };
+            document.getElementById('btn-action').onclick = () => {
+                bullets.push({ x: player.x + 20, y: player.y - 30, vx: 10 }); playSFX('shoot');
+            };
+
+            function animLoop() {
+                ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+                if (mode === 'war') {
+                    if (keys['ArrowRight'] || keys['d']) { player.x += 4; player.frame += 0.2; }
+                    if (keys['ArrowLeft'] || keys['a']) { player.x -= 4; player.frame += 0.2; }
+
+                    player.vy += 0.6; player.y += player.vy;
+                    if (player.y >= 350) { player.y = 350; player.vy = 0; player.isJumping = false; }
+
+                    ctx.save();
+                    ctx.translate(-player.x + 400, 0);
+
+                    ctx.fillStyle = '#221111'; ctx.fillRect(0, 0, 3000, 450);
+                    ctx.fillStyle = '#443333';
+                    for(let i=0; i<15; i++) ctx.fillRect(i*250, 150, 120, 250);
+
+                    ctx.fillStyle = '#ff0000';
+                    for(let i=0; i<5; i++) {
+                        let sx = 500 + i*350;
+                        ctx.beginPath(); ctx.moveTo(sx, 350); ctx.lineTo(sx+15, 320); ctx.lineTo(sx+30, 350); ctx.fill();
+                        if (Math.abs(player.x - sx) < 20 && player.y >= 340) {
+                            stickHP--; playSFX('hit'); player.x -= 60;
+                            hudHP.innerText = "Nyawa: " + "❤".repeat(Math.max(0, stickHP));
+                            if (stickHP <= 0) { triggerGameOver("Gugur Kena Duri!"); return; }
+                        }
+                    }
+
+                    drawStickman(ctx, player.x, player.y, player.frame, activeSkinColor, weapon);
+
+                    bullets.forEach((b, bi) => {
+                        b.x += b.vx; ctx.fillStyle = '#ffd700'; ctx.fillRect(b.x, b.y, 8, 4);
+                        enemies.forEach((en, ei) => {
+                            if (Math.abs(b.x - en.x) < 25 && Math.abs(b.y - en.y) < 50) {
+                                en.hp--; bullets.splice(bi, 1);
+                                if(en.hp <= 0) enemies.splice(ei, 1);
+                            }
+                        });
+                    });
+
+                    enemies.forEach(en => {
+                        en.x += en.vx; if(en.x < 400 || en.x > 800) en.vx *= -1;
+                        drawStickman(ctx, en.x, en.y, 0, '#ff0055', 'Pistol');
+                    });
+
+                    hostages.forEach(h => {
+                        if (!h.saved) {
+                            drawStickman(ctx, h.x, h.y, 0, '#00c853', 'None');
+                            if (Math.abs(player.x - h.x) < 40) {
+                                h.saved = true; triggerVictory("Berhasil Menyelamatkan Orang!"); return;
+                            }
+                        }
+                    });
+
+                    ctx.restore();
+                } else {
+                    if (keys['ArrowRight'] || keys['d']) player.x += 4;
+                    if (keys['ArrowLeft'] || keys['a']) player.x -= 4;
+                    if (keys['ArrowDown'] || keys['s']) player.y += 4;
+                    if (keys['ArrowUp'] || keys['w']) player.y -= 4;
+
+                    ctx.save();
+                    ctx.translate(-player.x + 400, -player.y + 225);
+
+                    ctx.fillStyle = '#2e7d32'; ctx.fillRect(0, 0, 2000, 2000);
+                    ctx.fillStyle = '#555'; ctx.fillRect(0, 400, 2000, 100);
+
+                    ctx.fillStyle = activeSkinColor;
+                    ctx.beginPath(); ctx.arc(player.x, player.y, 18, 0, Math.PI*2); ctx.fill();
+
+                    npcs.forEach(npc => {
+                        ctx.fillStyle = '#ffb300';
+                        ctx.beginPath(); ctx.arc(npc.x, npc.y, 18, 0, Math.PI*2); ctx.fill();
+                        if (Math.abs(player.x - npc.x) < 40 && Math.abs(player.y - npc.y) < 40) {
+                            showSpeechBubble("NGA PAPA ITAM", canvas);
+                        }
+                    });
+
+                    ctx.restore();
+                }
+
+                activeAnimFrames.push(requestAnimationFrame(animLoop));
+            }
+            animLoop();
+        }
+
+        function drawStickman(ctx, x, y, frame, color, weapon) {
+            ctx.strokeStyle = color; ctx.lineWidth = 4;
+            ctx.beginPath(); ctx.arc(x, y - 40, 12, 0, Math.PI * 2); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y - 28); ctx.lineTo(x, y - 10); ctx.stroke();
+            let legAnim = Math.sin(frame) * 10;
+            ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x - 10 + legAnim, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y - 10); ctx.lineTo(x + 10 - legAnim, y); ctx.stroke();
+            ctx.beginPath(); ctx.moveTo(x, y - 24); ctx.lineTo(x + 15, y - 18); ctx.stroke();
+            ctx.fillStyle = '#aaa';
+            if (weapon === 'Pistol' || weapon === 'AK47') ctx.fillRect(x + 12, y - 22, 14, 6);
+            if (weapon === 'Katana') ctx.fillRect(x + 12, y - 30, 4, 25);
+        }
+
+        function showSpeechBubble(text, canvas) {
+            const b = document.getElementById('speech-box');
+            b.innerText = text; b.style.opacity = 1; b.style.left = '50%'; b.style.top = '30%';
+            setTimeout(() => b.style.opacity = 0, 1500);
+        }
+
+        /* ==================== 4. TIC-TAC-TOE (X O) ==================== */
+        let xoState = []; let xoTurn = 'X'; let xoMode = 2;
+        function initXO(mode) {
+            xoMode = mode; showScreen('xo-screen');
+            currentGameRetryFn = () => initXO(mode);
+            const board = document.getElementById('xo-board'); board.innerHTML = '';
+            const size = (mode === 3) ? 4 : 3;
+            board.style.gridTemplateColumns = `repeat(${size}, 75px)`;
+            xoState = Array(size * size).fill(''); xoTurn = 'X';
+            document.getElementById('xo-status').innerText = `Giliran Player ${xoTurn}`;
+
+            for (let i = 0; i < size * size; i++) {
+                const cell = document.createElement('div');
+                cell.style.cssText = "width:75px; height:75px; background:#111; border:2px solid #00e5ff; display:flex; align-items:center; justify-content:center; font-size:30px; font-weight:bold; cursor:pointer;";
+                cell.onclick = () => handleXOClick(i, size);
+                board.appendChild(cell);
+            }
+        }
+
+        function handleXOClick(idx, size) {
+            if (xoState[idx] !== '') return;
+            playSFX('click'); xoState[idx] = xoTurn; renderXOBoard();
+            if (checkXOWin(xoTurn, size)) { triggerVictory(`Player ${xoTurn} Menang!`); return; }
+            if (!xoState.includes('')) { triggerGameOver("Hasil Seri!"); return; }
+
+            if (xoMode === 2) { xoTurn = xoTurn === 'X' ? 'O' : 'X'; }
+            else if (xoMode === 3) { xoTurn = xoTurn === 'X' ? 'O' : (xoTurn === 'O' ? 'Δ' : 'X'); }
+            else if (xoMode === 'ai') {
+                xoTurn = 'O'; document.getElementById('xo-status').innerText = `Robot Berpikir...`;
+                setTimeout(() => {
+                    let emptyIdxs = xoState.map((v, i) => v === '' ? i : null).filter(v => v !== null);
+                    let aiMove = emptyIdxs[Math.floor(Math.random() * emptyIdxs.length)];
+                    if (aiMove !== undefined) {
+                        xoState[aiMove] = 'O'; renderXOBoard();
+                        if (checkXOWin('O', size)) { triggerGameOver("Robot Menang!"); return; }
+                    }
+                    xoTurn = 'X'; document.getElementById('xo-status').innerText = `Giliran Player X`;
+                }, 400);
+                return;
+            }
+            document.getElementById('xo-status').innerText = `Giliran Player ${xoTurn}`;
+        }
+
+        function renderXOBoard() {
+            const cells = document.getElementById('xo-board').children;
+            xoState.forEach((val, i) => {
+                cells[i].innerText = val;
+                cells[i].style.color = val === 'X' ? '#ff0055' : val === 'O' ? '#00e5ff' : '#ffd700';
+            });
+        }
+
+        function checkXOWin(p, size) {
+            const b = xoState;
+            if (size === 3) {
+                const wins = [[0,1,2],[3,4,5],[6,7,8],[0,3,6],[1,4,7],[2,5,8],[0,4,8],[2,4,6]];
+                return wins.some(w => w.every(i => b[i] === p));
+            } else {
+                for(let i=0; i<4; i++) {
+                    if([0,1,2,3].every(j => b[i*4+j] === p)) return true;
+                    if([0,1,2,3].every(j => b[j*4+i] === p)) return true;
+                }
+                return false;
+            }
+        }
+
+        /* ==================== 5. MENGGAMBAR & LOMBA ==================== */
+        let isDrawing = false; let isColorPickerActive = false;
+        function initDrawingMode(mode) {
+            showScreen('draw-screen'); currentGameRetryFn = () => initDrawingMode(mode);
+            const c1 = document.getElementById('paintCanvas1');
+            const c2 = document.getElementById('paintCanvas2');
+            const c3 = document.getElementById('paintCanvas3');
+            c2.style.display = 'none'; c3.style.display = 'none';
+            [c1, c2, c3].forEach(setupCanvasEvents);
+
+            if (mode === 'contest') {
+                c2.style.display = 'block'; c3.style.display = 'block';
+                document.getElementById('draw-topic').innerText = "TANTANGAN: GAMBAR MOBIL RACING MEWAH";
+                let timeLeft = 300;
+                let t = setInterval(() => {
+                    timeLeft--;
+                    let m = Math.floor(timeLeft / 60), s = timeLeft % 60;
+                    document.getElementById('draw-timer').innerText = `⏱️ ${m}:${s < 10 ? '0' : ''}${s}`;
+                    if (timeLeft <= 0) { clearInterval(t); triggerVictory("Lomba Menggambar Selesai!"); }
+                }, 1000);
+                activeIntervals.push(t);
+            }
+        }
+
+        function setupCanvasEvents(canvas) {
+            const ctx = canvas.getContext('2d');
+            ctx.fillStyle = "#ffffff"; ctx.fillRect(0,0,canvas.width,canvas.height);
+            canvas.onmousedown = (e) => startDraw(e, canvas, ctx);
+            canvas.onmousemove = (e) => draw(e, canvas, ctx);
+            canvas.onmouseup = () => isDrawing = false;
+            canvas.ontouchstart = (e) => startDraw(e.touches[0], canvas, ctx);
+            canvas.ontouchmove = (e) => draw(e.touches[0], canvas, ctx);
+            canvas.ontouchend = () => isDrawing = false;
+        }
+
+        function startDraw(e, canvas, ctx) {
+            const rect = canvas.getBoundingClientRect();
+            const x = e.clientX - rect.left, y = e.clientY - rect.top;
+            if (isColorPickerActive) {
+                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                const hex = "#" + ((1 << 24) + (pixel[0] << 16) + (pixel[1] << 8) + pixel[2]).toString(16).slice(1);
+                document.getElementById('draw-color').value = hex; isColorPickerActive = false; return;
+            }
+            isDrawing = true; ctx.beginPath(); ctx.moveTo(x, y);
+        }
+
+        function draw(e, canvas, ctx) {
+            if (!isDrawing || isColorPickerActive) return;
+            const rect = canvas.getBoundingClientRect();
+            ctx.lineTo(e.clientX - rect.left, e.clientY - rect.top);
+            ctx.strokeStyle = document.getElementById('draw-color').value;
+            ctx.lineWidth = document.getElementById('draw-size').value;
+            ctx.lineCap = 'round'; ctx.stroke();
+        }
+
+        function enableColorPicker() { isColorPickerActive = true; alert('Klik warna di gambar!'); }
+        function clearCanvas() {
+            [1, 2, 3].forEach(id => {
+                const c = document.getElementById('paintCanvas' + id);
+                const ctx = c.getContext('2d');
+                ctx.fillStyle = '#ffffff'; ctx.fillRect(0,0,c.width,c.height);
+            });
+        }
+
+        /* ==================== 6. BLOCK BLAST ==================== */
+        function startBlockBlast(bgColor) {
+            showScreen('block-screen'); currentGameRetryFn = () => startBlockBlast(bgColor);
+            let score = 0; document.getElementById('block-score').innerText = score;
+            const canvas = document.getElementById('blockCanvas'); const ctx = canvas.getContext('2d');
+            let grid = Array(8).fill(0).map(() => Array(8).fill(0));
+
+            function renderBlock() {
+                ctx.fillStyle = bgColor; ctx.fillRect(0,0,canvas.width,canvas.height);
+                for(let r=0; r<8; r++) {
+                    for(let c=0; c<8; c++) {
+                        ctx.strokeStyle = '#444'; ctx.strokeRect(c*40 + 20, r*40 + 20, 40, 40);
+                        if(grid[r][c]) { ctx.fillStyle = activeSkinColor; ctx.fillRect(c*40 + 22, r*40 + 22, 36, 36); }
+                    }
+                }
+            }
+            renderBlock();
+
+            canvas.onclick = (e) => {
+                const rect = canvas.getBoundingClientRect();
+                const c = Math.floor((e.clientX - rect.left - 20) / 40), r = Math.floor((e.clientY - rect.top - 20) / 40);
+                if (r >= 0 && r < 8 && c >= 0 && c < 8 && !grid[r][c]) {
+                    playSFX('click'); grid[r][c] = 1; score += 10;
+                    document.getElementById('block-score').innerText = score;
+                    for(let i=0; i<8; i++) {
+                        if (grid[i].every(v => v === 1)) { grid[i] = Array(8).fill(0); score += 100; playSFX('win'); }
+                    }
+                    renderBlock();
+                }
+            };
+        }
+
+        /* ==================== 7. SAMBUNG KATA & TEBAK BENDERA GLOBAL ==================== */
+        const globalFlagData = [
+            // Asia
+            { name: "Indonesia", region: "Asia", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="3" height="1" fill="#e70011"/><rect y="1" width="3" height="1" fill="#fff"/></svg>` },
+            { name: "Jepang", region: "Asia", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="3" height="2" fill="#fff"/><circle cx="1.5" cy="1" r="0.6" fill="#bc002d"/></svg>` },
+            { name: "Palestina", region: "Asia", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 3"><rect width="6" height="1" fill="#000"/><rect y="1" width="6" height="1" fill="#fff"/><rect y="2" width="6" height="1" fill="#007a3d"/><polygon points="0,0 2,1.5 0,3" fill="#ce1126"/></svg>` },
+            { name: "Arab Saudi", region: "Asia", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="3" height="2" fill="#006c35"/><text x="1.5" y="1.2" font-size="0.4" fill="#fff" text-anchor="middle">Saudi</text></svg>` },
+            // Eropa
+            { name: "Jerman", region: "Eropa", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 5 3"><rect width="5" height="1" fill="#000"/><rect y="1" width="5" height="1" fill="#dd0000"/><rect y="2" width="5" height="1" fill="#ffce00"/></svg>` },
+            { name: "Prancis", region: "Eropa", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="1" height="2" fill="#002395"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ed2939"/></svg>` },
+            { name: "Itali", region: "Eropa", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="1" height="2" fill="#009246"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#ce2b37"/></svg>` },
+            // Afrika
+            { name: "Mesir", region: "Afrika", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="3" height="0.67" fill="#ce1126"/><rect y="0.67" width="3" height="0.67" fill="#fff"/><rect y="1.34" width="3" height="0.67" fill="#000"/></svg>` },
+            { name: "Nigeria", region: "Afrika", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="1" height="2" fill="#008751"/><rect x="1" width="1" height="2" fill="#fff"/><rect x="2" width="1" height="2" fill="#008751"/></svg>` },
+            // Amerika
+            { name: "Brasil", region: "Amerika", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 10 7"><rect width="10" height="7" fill="#009b3a"/><polygon points="5,1 9,3.5 5,6 1,3.5" fill="#fedf00"/><circle cx="5" cy="3.5" r="1.5" fill="#002776"/></svg>` },
+            { name: "Argentina", region: "Amerika", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 3 2"><rect width="3" height="0.67" fill="#74acdf"/><rect y="0.67" width="3" height="0.67" fill="#fff"/><rect y="1.34" width="3" height="0.67" fill="#74acdf"/></svg>` },
+            // Oseania
+            { name: "Australia", region: "Oseania", svg: `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 6 3"><rect width="6" height="3" fill="#00008b"/><text x="4.5" y="1.8" font-size="0.8" fill="#fff" text-anchor="middle">★</text></svg>` }
+        ];
+
+        function startWordGame(cat) {
+            showScreen('quiz-screen'); currentGameRetryFn = () => startWordGame(cat);
+            let tLeft = 50;
+            const qText = document.getElementById('quiz-question');
+            const qMedia = document.getElementById('quiz-media');
+            const qOpts = document.getElementById('quiz-options');
+            qMedia.innerHTML = ''; qOpts.innerHTML = '';
+
+            let timer = setInterval(() => {
+                tLeft--; document.getElementById('quiz-timer').innerText = tLeft + "s";
+                if (tLeft <= 0) { clearInterval(timer); triggerGameOver("Waktu Habis!"); }
+            }, 1000);
+            activeIntervals.push(timer);
+
+            if (cat === 'negara') {
+                const target = globalFlagData[Math.floor(Math.random() * globalFlagData.length)];
+                qText.innerText = `Bendera Negara Apakah Ini? [Benua: ${target.region}]`;
+                qMedia.innerHTML = `<div class="flag-img">${target.svg}</div>`;
+
+                let options = [target.name];
+                while(options.length < 4) {
+                    let randName = globalFlagData[Math.floor(Math.random() * globalFlagData.length)].name;
+                    if(!options.includes(randName)) options.push(randName);
+                }
+
+                options.sort(() => Math.random() - 0.5).forEach(opt => {
+                    const btn = document.createElement('button'); btn.className = 'btn'; btn.style.padding = '12px'; btn.innerText = opt;
+                    btn.onclick = () => { if (opt === target.name) triggerVictory("Benar! NEXT"); else triggerGameOver(`Salah! Jawabannya ${target.name}`); };
+                    qOpts.appendChild(btn);
+                });
+            } else {
+                qText.innerText = `Kata Kategori [${cat.toUpperCase()}] yang Benar:`;
+                ["Apel", "Gajah", "Jakarta", "Meja"].sort(() => Math.random() - 0.5).forEach((opt, idx) => {
+                    const btn = document.createElement('button'); btn.className = 'btn'; btn.style.padding = '12px'; btn.innerText = opt;
+                    btn.onclick = () => { if (idx === 0) triggerVictory("Benar! NEXT"); else triggerGameOver("Salah!"); };
+                    qOpts.appendChild(btn);
+                });
+            }
+        }
+
+        /* ==================== 8. EDUKASI ==================== */
+        let selectedClass = 1;
+        const tauhidBank = {
+            1: [
+                { q: "Siapa Rabb/Tuhan kita?", a: "Allah Azza wa Jalla", opts: ["Allah Azza wa Jalla", "Malaikat", "Manusia", "Nabi"] },
+                { q: "Apa nama kitab suci umat Islam?", a: "Al-Qur'an", opts: ["Al-Qur'an", "Injil", "Taurat", "Zabur"] }
+            ],
+            2: [
+                { q: "Apa arti Asmaul Husna Ar-Rahman?", a: "Maha Pengasih", opts: ["Maha Pengasih", "Maha Perkasa", "Maha Pencipta", "Maha Raja"] },
+                { q: "Kepada siapa kita memohon pertolongan?", a: "Hanya kepada Allah", opts: ["Hanya kepada Allah", "Pohon Keramat", "Kuburan", "Patung"] }
+            ],
+            3: [
+                { q: "Rukun Islam ada berapa perkara?", a: "5 Perkara", opts: ["5 Perkara", "6 Perkara", "4 Perkara", "7 Perkara"] },
+                { q: "Rukun Iman ada berapa perkara?", a: "6 Perkara", opts: ["6 Perkara", "5 Perkara", "3 Perkara", "7 Perkara"] }
+            ],
+            4: [
+                { q: "Syirik Akbar dapat menyebabkan?", a: "Hapusnya Seluruh Amal", opts: ["Hapusnya Seluruh Amal", "Dosa Kecil", "Pahala Bertambah", "Dimaafkan Langsung"] },
+                { q: "Malaikat diciptakan dari?", a: "Cahaya (Nur)", opts: ["Cahaya (Nur)", "Api", "Tanah", "Angin"] }
+            ],
+            5: [
+                { q: "Pengertian Tauhid Rububiyah adalah mengesakan Allah dalam hal?", a: "Penciptaan & Pengaturan", opts: ["Penciptaan & Pengaturan", "Ibadah", "Nama & Sifat", "Hukum Negara"] },
+                { q: "Pengertian Tauhid Uluhiyah adalah mengesakan Allah dalam hal?", a: "Ibadah", opts: ["Ibadah", "Penciptaan", "Nama & Sifat", "Rezeki"] }
+            ],
+            6: [
+                { q: "Kitab Suci yang diturunkan kepada Nabi Muhammad SAW adalah?", a: "Al-Qur'an", opts: ["Al-Qur'an", "Taurat", "Injil", "Zabur"] },
+                { q: "Meyakini hari kiamat termasuk rukun iman ke?", a: "Ke-5", opts: ["Ke-5", "Ke-1", "Ke-3", "Ke-6"] }
+            ]
+        };
+
+        function openEduSubject(cls) { selectedClass = cls; document.getElementById('edu-class-title').innerText = "KELAS " + cls; showScreen('edu-subject-menu'); }
+        function startEduGame(subject) {
+            showScreen('quiz-screen'); currentGameRetryFn = () => startEduGame(subject);
+            document.getElementById('quiz-timer').innerText = "";
+            const qText = document.getElementById('quiz-question'); const qOpts = document.getElementById('quiz-options');
+            document.getElementById('quiz-media').innerHTML = ''; qOpts.innerHTML = '';
+
+            if (subject === 'tauhid') {
+                const list = tauhidBank[selectedClass] || tauhidBank[1];
+                const item = list[Math.floor(Math.random() * list.length)];
+                qText.innerText = `[Attuqa Tauhid Kls ${selectedClass}] ${item.q}`;
+                item.opts.sort(() => Math.random() - 0.5).forEach(opt => {
+                    const btn = document.createElement('button'); btn.className = 'btn'; btn.style.padding = '12px'; btn.innerText = opt;
+                    btn.onclick = () => { if (opt === item.a) triggerVictory("MasyaAllah Benar!"); else triggerGameOver("Jawaban Salah!"); };
+                    qOpts.appendChild(btn);
+                });
+            } else {
+                let n1 = selectedClass * 5, n2 = selectedClass * 3, ans = n1 + n2;
+                qText.innerText = `[Matematika Kls ${selectedClass}] ${n1} + ${n2} = ?`;
+                [ans, ans + 2, ans - 1, ans + 5].sort(() => Math.random() - 0.5).forEach(opt => {
+                    const btn = document.createElement('button'); btn.className = 'btn'; btn.style.padding = '12px'; btn.innerText = opt;
+                    btn.onclick = () => { if (opt === ans) triggerVictory("Benar!"); else triggerGameOver("Salah!"); };
+                    qOpts.appendChild(btn);
+                });
+            }
+        }
+
+        /* ==================== 9. SNAKE ==================== */
+        function startSnakeGame() {
+            showScreen('snake-screen'); currentGameRetryFn = () => startSnakeGame();
+            const canvas = document.getElementById('snakeCanvas'); const ctx = canvas.getContext('2d');
+            let snake = [{x: 10, y: 10}, {x: 9, y: 10}]; let food = {x: 5, y: 5};
+            let dir = 'RIGHT'; let lvl = 1; let hp = 5; let score = 0;
+
+            const setDir = (d) => dir = d;
+            document.getElementById('snk-btn-up').onclick = () => { if(dir!='DOWN') setDir('UP'); };
+            document.getElementById('snk-btn-down').onclick = () => { if(dir!='UP') setDir('DOWN'); };
+            document.getElementById('snk-btn-left').onclick = () => { if(dir!='RIGHT') setDir('LEFT'); };
+            document.getElementById('snk-btn-right').onclick = () => { if(dir!='LEFT') setDir('RIGHT'); };
+
+            let loop = setInterval(() => {
+                let head = {...snake[0]};
+                if(dir==='UP') head.y--; if(dir==='DOWN') head.y++;
+                if(dir==='LEFT') head.x--; if(dir==='RIGHT') head.x++;
+
+                if (head.x<0 || head.x>=18 || head.y<0 || head.y>=18) {
+                    hp--; playSFX('hit'); document.getElementById('snake-hp').innerText = "❤".repeat(Math.max(0, hp));
+                    head = {x: 10, y: 10};
+                    if(hp <= 0) { clearInterval(loop); triggerGameOver("Ular Nabrak Tembok!"); return; }
+                }
+
+                snake.unshift(head);
+                if (head.x === food.x && head.y === food.y) {
+                    playSFX('eat'); score += 10; document.getElementById('snake-score').innerText = score;
+                    food = {x: Math.floor(Math.random()*18), y: Math.floor(Math.random()*18)};
+                } else { snake.pop(); }
+
+                ctx.fillStyle = '#111'; ctx.fillRect(0,0,canvas.width,canvas.height);
+                ctx.fillStyle = '#ff0055'; ctx.beginPath(); ctx.arc(food.x*20+10, food.y*20+10, 8, 0, Math.PI*2); ctx.fill();
+
+                snake.forEach((seg, i) => {
+                    ctx.fillStyle = i === 0 ? '#00e5ff' : activeSkinColor;
+                    ctx.beginPath(); ctx.arc(seg.x*20+10, seg.y*20+10, 9, 0, Math.PI*2); ctx.fill();
+                });
+            }, 120);
+            activeIntervals.push(loop);
+        }
+
+        /* ==================== 10. FLAPPY BIRD ==================== */
+        function startFlappyGame() {
+            showScreen('flappy-screen'); currentGameRetryFn = () => startFlappyGame();
+            const canvas = document.getElementById('flappyCanvas'); const ctx = canvas.getContext('2d');
+            let bird = { x: 50, y: 200, vy: 0 }; let pipes = []; let score = 0;
+
+            canvas.onclick = () => { bird.vy = -7; playSFX('jump'); };
+
+            let loop = setInterval(() => {
+                bird.vy += 0.4; bird.y += bird.vy;
+                if (pipes.length === 0 || pipes[pipes.length-1].x < 200) pipes.push({ x: 360, top: Math.random()*180 + 40 });
+
+                ctx.fillStyle = '#70c5ce'; ctx.fillRect(0,0,canvas.width,canvas.height);
+
+                ctx.fillStyle = '#ffd700'; ctx.beginPath(); ctx.arc(bird.x, bird.y, 12, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#ff9900'; ctx.beginPath(); ctx.arc(bird.x-6, bird.y+2, 6, 0, Math.PI*2); ctx.fill();
+                ctx.fillStyle = '#ff0000'; ctx.fillRect(bird.x+8, bird.y-2, 8, 5);
+
+                pipes.forEach((p) => {
+                    p.x -= 3; ctx.fillStyle = '#2e7d32';
+                    ctx.fillRect(p.x, 0, 40, p.top); ctx.fillRect(p.x, p.top + 100, 40, canvas.height);
+                    if (p.x === 50) { score++; playSFX('win'); document.getElementById('flappy-score').innerText = score; }
+                    if (Math.abs(bird.x - p.x) < 25 && (bird.y < p.top || bird.y > p.top + 100)) {
+                        clearInterval(loop); triggerGameOver("Burung Nabrak!");
+                    }
+                });
+
+                if (bird.y > canvas.height || bird.y < 0) { clearInterval(loop); triggerGameOver("Jatuh!"); }
+            }, 20);
+            activeIntervals.push(loop);
+        }
+    </script>
+</body>
+</html>
